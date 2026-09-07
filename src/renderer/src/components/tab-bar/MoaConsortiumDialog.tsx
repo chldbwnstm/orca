@@ -199,7 +199,7 @@ const MoaConsortiumDialog = React.memo(function MoaConsortiumDialog(): React.JSX
           <Button variant="outline" onClick={closeModal}>
             {translate('components.tab.bar.MoaConsortiumDialog.cancel', 'Cancel')}
           </Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit}>
+          <Button onClick={handleSubmit} disabled={!canSubmit} data-testid="moa-consortium-start">
             {translate('components.tab.bar.MoaConsortiumDialog.start', 'Start debate')}
             <span className="ml-1 text-xs opacity-70">{getScreenSubmitShortcutLabel()}</span>
           </Button>
