@@ -179,6 +179,15 @@ export function openMoaDeliberation(
   this: OrchestrationDb,
   input: { runId: string; slug: string; taskId?: string; seatCount?: number }
 ): MoaDeliberationRow {
+  if (
+    input.seatCount !== undefined &&
+    (!Number.isInteger(input.seatCount) || input.seatCount < 0)
+  ) {
+    throw new OrchestrationError(
+      'invalid_argument',
+      'MoA deliberation seat count must be a non-negative integer.'
+    )
+  }
   this.requireRun(input.runId)
   const id = moaDeliberationId(input.runId, input.slug)
   this.db

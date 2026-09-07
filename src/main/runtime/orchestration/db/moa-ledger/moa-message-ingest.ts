@@ -1,5 +1,6 @@
 import type { MessageRow } from '../../types'
 import type { OrchestrationDb } from '../orchestration-db'
+import { OrchestrationError } from '../../orchestration-error'
 import { assertValidEntry, type MoaEntryInput } from './moa-ledger-store'
 
 // The transport half of the MoA ledger: `payload.moa` riding an existing `status` message.
@@ -16,7 +17,7 @@ type MoaMessagePayload = {
 /** Why a reason and not a bare count: 0 alone cannot tell "no ledger here" from "we dropped it". */
 export type MoaIngestResult = {
   inserted: number
-  skipped?: 'not_status' | 'malformed' | 'invalid_entry' | 'store_error'
+  skipped?: 'not_status' | 'malformed' | 'invalid_entry' | 'rejected'
 }
 
 // Transport-tolerant materializer: a status message may carry payload.moa from a
@@ -64,8 +65,13 @@ export function ingestMoaMessagePayload(
       messageId: message.id
     })
     return { inserted: result.inserted }
-  } catch {
-    return { inserted: 0, skipped: 'store_error' }
+  } catch (error) {
+    // Why rethrow anything else: a storage failure must take the carrier message down with it
+    // (the insert savepoint), or a valid entry would vanish while its message still delivers.
+    if (error instanceof OrchestrationError) {
+      return { inserted: 0, skipped: 'rejected' }
+    }
+    throw error
   }
 }
 

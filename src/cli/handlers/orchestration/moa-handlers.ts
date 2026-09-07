@@ -81,13 +81,25 @@ function singleEntryFromFlags(flags: Map<string, string | boolean>): MoaEntryPay
   return entry
 }
 
+// Why the list: with an entries file present, a stray single-entry flag would be silently ignored.
+const SINGLE_ENTRY_FLAGS = [
+  'kind',
+  'round',
+  'seat',
+  'target',
+  'verdict',
+  'rationale',
+  'authored-at'
+] as const
+
 export const ORCHESTRATION_MOA_HANDLERS: Record<string, CommandHandler> = {
   'orchestration moa-log': async ({ flags, client, cwd, json }) => {
     const entriesFile = getOptionalStringFlag(flags, 'entries-file')
-    if (entriesFile && flags.has('kind')) {
+    const strayFlag = SINGLE_ENTRY_FLAGS.find((flag) => flags.has(flag))
+    if (entriesFile && strayFlag) {
       throw new RuntimeClientError(
         'invalid_argument',
-        'Pass either --entries-file or single-entry flags (--kind …), not both.'
+        `Pass either --entries-file or single-entry flags, not both (saw --${strayFlag}).`
       )
     }
     const entries = entriesFile ? await readEntriesFile(entriesFile) : [singleEntryFromFlags(flags)]

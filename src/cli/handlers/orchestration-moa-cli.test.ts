@@ -167,8 +167,8 @@ describe('orchestration moa commands', () => {
         'd1',
         '--entries-file',
         'x.json',
-        '--kind',
-        'note',
+        '--round',
+        '2',
         '--json'
       ],
       '/tmp/repo'

@@ -447,7 +447,7 @@ describe('moa-ledger-store', () => {
     })
   })
 
-  it('reports a store_error when the ledger write itself is rejected', () => {
+  it('reports a rejection when the ledger refuses the write', () => {
     const { db, runId } = createDbWithRun()
     db.logMoaEntries({ runId, slug: 'd1', seatCount: 3, entries: [{ kind: 'note' }] })
     const drifting = db.insertMessage({
@@ -460,7 +460,7 @@ describe('moa-ledger-store', () => {
       })
     })
     // Already ingested (and swallowed) by insertMessage; re-running names the reason.
-    expect(db.ingestMoaMessagePayload(drifting)).toEqual({ inserted: 0, skipped: 'store_error' })
+    expect(db.ingestMoaMessagePayload(drifting)).toEqual({ inserted: 0, skipped: 'rejected' })
   })
 
   it('records a successful ingest with no skip reason', () => {
@@ -499,5 +499,32 @@ describe('moa-ledger-store', () => {
     expect(entriesOf(db, runId, 'd1').map((entry) => entry.seat_id)).toEqual(['seat-mine'])
     expect(entriesOf(db, other.id, 'd1').map((entry) => entry.seat_id)).toEqual(['seat-theirs'])
     expect(db.listMoaDeliberations({ runId })).toHaveLength(1)
+  })
+})
+
+describe('moa-ledger-store review follow-ups', () => {
+  it('rejects a negative or fractional seat count before storing anything', () => {
+    const { db, runId } = createDbWithRun()
+    for (const seatCount of [-1, 1.5]) {
+      expect(() =>
+        db.logMoaEntries({ runId, slug: 'd1', seatCount, entries: [{ kind: 'note' }] })
+      ).toThrow(/non-negative integer/)
+    }
+    expect(db.getMoaDeliberation({ runId, slug: 'd1' })).toBeUndefined()
+  })
+
+  it('rolls the carrier message back when a valid ledger write fails to persist', () => {
+    const { db, runId } = createDbWithRun()
+    db.db.exec('DROP TABLE moa_ledger_entries')
+    expect(() =>
+      db.insertMessage({
+        from: 'term_seat',
+        to: `run:${runId}`,
+        subject: 'proposal ready',
+        runId,
+        payload: JSON.stringify({ moa: { deliberation: 'd1', entries: [{ kind: 'note' }] } })
+      })
+    ).toThrow()
+    expect(db.db.prepare('SELECT COUNT(*) AS n FROM messages').get()).toEqual({ n: 0 })
   })
 })
