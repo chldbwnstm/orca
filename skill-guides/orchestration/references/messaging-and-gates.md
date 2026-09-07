@@ -61,3 +61,23 @@ Pass `json_array` using the quoting rules of the active shell; do not copy POSIX
 single-quote syntax into PowerShell or `cmd.exe`.
 
 Do not create a gate merely to answer a worker's `ask`.
+
+## MoA deliberation ledger
+
+Durable decision record for a multi-agent deliberation: who proposed what, who
+challenged it, what was adopted, and why. Use it when several seats deliberate and
+the rationale must outlive the coordinator's context.
+
+```text
+ORCA orchestration moa-log --deliberation <slug> (--kind <kind> [--round <n>] [--seat <label>] [--target <entry_id>] [--verdict <verdict>] [--rationale <text>] [--authored-at <iso>] | --entries-file <path>) [--task <task_id>] [--seat-count <n>] [--run <run_id>] [--json]
+ORCA orchestration moa-show [--deliberation <slug>] [--round <n>] [--run <run_id>] [--json]
+```
+
+Kinds: `proposal`, `verdict`, `outcome`, `close`, `note`. Verdicts: `support`,
+`challenge`, `merge`, `adopted`, `rejected`. `--deliberation` is a slug unique within
+your Run, not a global id. Entries are append-only and content-addressed, so a
+retried `moa-log` is an ignored duplicate; every entry id comes back on the response
+so a later `--kind verdict --target <entry_id>` can point at a specific proposal.
+Prefer `--entries-file` for a whole round; structured `payload` values are accepted
+only there, because shell-quoted JSON is what PowerShell mangles. `moa-show --json`
+returns entries ordered `(round, authored_at, id)` — author order, not arrival order.

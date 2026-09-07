@@ -132,6 +132,8 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
       'orchestration gate-create',
       'orchestration gate-resolve',
       'orchestration gate-list',
+      'orchestration moa-log',
+      'orchestration moa-show',
       'orchestration reset'
     ],
     load: async () => (await import('./handlers/orchestration.js')).ORCHESTRATION_HANDLERS

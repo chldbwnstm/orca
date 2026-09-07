@@ -33,6 +33,8 @@ import type { ForeignDirectMailboxRoutingMethods } from './messages/foreign-dire
 import type { MailboxPointerEnterStateMethods } from './messages/mailbox-pointer-enter-state'
 import type { MessageInboxMethods } from './messages/message-inbox'
 import type { MessageInsertMethods } from './messages/message-insert'
+import type { MoaLedgerStoreMethods } from './moa-ledger/moa-ledger-store'
+import type { MoaMessageIngestMethods } from './moa-ledger/moa-message-ingest'
 import type { RoleMailboxDeliveryMethods } from './messages/role-mailbox-delivery'
 import type { MutationReceiptStoreMethods } from './mutation-receipts/mutation-receipt-store'
 import type { LifecycleTransitionMethods } from './lifecycle-transition'
@@ -93,6 +95,8 @@ export type OrchestrationDbMethods = AttemptObservationStoreMethods &
   LegacyCoordinatorMailTakeoverMethods &
   RunDeliveryMethods &
   MessageInsertMethods &
+  MoaLedgerStoreMethods &
+  MoaMessageIngestMethods &
   RoleMailboxDeliveryMethods &
   MessageInboxMethods &
   MailboxPointerEnterStateMethods &

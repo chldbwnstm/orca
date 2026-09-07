@@ -29,6 +29,8 @@ import { attachLegacyRecoveryCohort } from './legacy/legacy-recovery-cohort'
 import { attachLegacyReplyOperation } from './legacy/legacy-reply-operation'
 import { attachLegacyWorkerCompletion } from './legacy/legacy-worker-completion'
 import { attachDirectMailboxRouting } from './messages/direct-mailbox-routing'
+import { attachMoaLedgerStore } from './moa-ledger/moa-ledger-store'
+import { attachMoaMessageIngest } from './moa-ledger/moa-message-ingest'
 import { attachForeignDirectMailboxRouting } from './messages/foreign-direct-mailbox-routing'
 import { attachMailboxPointerEnterState } from './messages/mailbox-pointer-enter-state'
 import { attachMessageInbox } from './messages/message-inbox'
@@ -134,6 +136,8 @@ export function attachOrchestrationDbMethods(ctor: { prototype: object }): void 
   attachDispatchCompletion(ctor)
   attachWorkerReportSettlement(ctor)
   attachDecisionGateStore(ctor)
+  attachMoaLedgerStore(ctor)
+  attachMoaMessageIngest(ctor)
   attachCoordinatorRunStore(ctor)
   attachOrchestrationReset(ctor)
 }

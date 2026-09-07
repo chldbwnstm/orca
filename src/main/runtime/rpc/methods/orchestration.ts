@@ -11,6 +11,7 @@ import { ORCHESTRATION_DISPATCH_METHODS } from './orchestration/runs/dispatch-me
 import { ORCHESTRATION_ASK_METHODS } from './orchestration/messaging/ask-methods'
 import { ORCHESTRATION_GATE_METHODS } from './orchestration/gates/gates'
 import { ORCHESTRATION_RESET_METHODS } from './orchestration/runs/reset-methods'
+import { ORCHESTRATION_MOA_METHODS } from './orchestration/moa/moa-methods'
 
 export const ORCHESTRATION_METHODS: RpcMethod[] = [
   ...ORCHESTRATION_RUN_METHODS,
@@ -23,5 +24,6 @@ export const ORCHESTRATION_METHODS: RpcMethod[] = [
   ...ORCHESTRATION_DISPATCH_METHODS,
   ...ORCHESTRATION_ASK_METHODS,
   ...ORCHESTRATION_GATE_METHODS,
+  ...ORCHESTRATION_MOA_METHODS,
   ...ORCHESTRATION_RESET_METHODS
 ].map(sweepingSettledWorkerResumeFences)

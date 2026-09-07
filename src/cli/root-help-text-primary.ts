@@ -119,6 +119,8 @@ export const ROOT_HELP_TEXT_PRIMARY = [
   '  orchestration gate-create Create a decision gate blocking a task',
   '  orchestration gate-resolve Resolve a pending decision gate',
   '  orchestration gate-list   List decision gates',
+  '  orchestration moa-log     Append entries to a MoA deliberation ledger',
+  '  orchestration moa-show    Show MoA deliberations or one ledger',
   '  orchestration reset       Reset orchestration state',
   '',
   'Computer Use:',

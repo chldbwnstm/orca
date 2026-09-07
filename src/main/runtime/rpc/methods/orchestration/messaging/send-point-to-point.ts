@@ -56,7 +56,7 @@ export function sendPointToPointMessage(args: {
     : undefined
   const commitMessage = (): { receipt: unknown; nudge: () => void } => {
     const dispatch = dispatchId ? db.getDispatchContextById(dispatchId) : undefined
-    const msg = db.insertMessage({
+    const { message: msg, moaIngest } = db.insertMessageWithMoaIngest({
       from,
       to,
       subject: params.subject,
@@ -75,6 +75,9 @@ export function sendPointToPointMessage(args: {
         to
       )
     })
+    // Why only when the sender tried: a `not_status` skip is every ordinary message, and reporting
+    // it would put a MoA field on every send receipt. Additive optional field — wire-compat rule 1.
+    const moaReceipt = moaIngest.skipped === 'not_status' ? {} : { moaIngest }
     if (isDispatchMutationMessageType(msg.type)) {
       const taskId = parseMessageTaskId(params.payload)
       const capabilityBacked = Boolean(dispatch?.capability_hash)
@@ -113,7 +116,7 @@ export function sendPointToPointMessage(args: {
       if (reconciled.action === 'suppressed') {
         return recordReceiptForPostCommitNudge(
           recordMutationReceipt,
-          withSendWarnings({ message: exposeMessage(msg) }),
+          withSendWarnings({ message: exposeMessage(msg), ...moaReceipt }),
           () => undefined
         )
       }
@@ -129,14 +132,14 @@ export function sendPointToPointMessage(args: {
       }
       const receipt = withSendWarnings(
         msg.type === 'worker_done'
-          ? { message: exposeMessage(msg), lifecycle: reconciled }
-          : { message: exposeMessage(msg) }
+          ? { message: exposeMessage(msg), lifecycle: reconciled, ...moaReceipt }
+          : { message: exposeMessage(msg), ...moaReceipt }
       )
       return recordReceiptForPostCommitNudge(recordMutationReceipt, receipt, () =>
         runtime.notifyMessageArrived(msg.to_handle, msg.type)
       )
     }
-    const receipt = withSendWarnings({ message: exposeMessage(msg) })
+    const receipt = withSendWarnings({ message: exposeMessage(msg), ...moaReceipt })
     return recordReceiptForPostCommitNudge(recordMutationReceipt, receipt, () =>
       runtime.notifyMessageArrived(msg.to_handle, msg.type)
     )
