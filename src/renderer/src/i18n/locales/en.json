@@ -17162,7 +17162,9 @@
         "SortableTabContextMenu": {
           "switchToTerminalView": "Switch to terminal view",
           "switchToChatView": "Switch to chat view",
-          "closeTabsToLeft": "Close Tabs To The Left"
+          "closeTabsToLeft": "Close Tabs To The Left",
+          "moaDebate": "Debate with {{count}} tabs (MoA)…",
+          "moaDebateSelectMore": "Debate with tabs (MoA): {{modifier}}+click 2 or more"
         },
         "BrowserTab": {
           "closeOthers": "Close Others",
@@ -17171,6 +17173,18 @@
         "EditorFileTabContextMenu": {
           "closeOthers": "Close Others",
           "closeTabsToLeft": "Close Tabs To The Left"
+        },
+        "MoaConsortiumDialog": {
+          "launchFailed": "The coordinator terminal could not be started.",
+          "title": "Debate with MoA",
+          "description": "Seats the selected tabs as an anonymous consortium and opens a Claude Code coordinator tab that runs the /moa skill.",
+          "seats": "Seats ({{count}})",
+          "tooFewSeats": "Select at least {{count}} tabs with {{modifier}}+click.",
+          "problem": "Problem to debate",
+          "problemPlaceholder": "State the decision or question the seats should deliberate.",
+          "coordinatorMissing": "Claude Code was not detected for this workspace; the coordinator tab needs it.",
+          "cancel": "Cancel",
+          "start": "Start debate"
         }
       }
     },

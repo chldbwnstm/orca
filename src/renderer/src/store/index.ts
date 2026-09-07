@@ -39,6 +39,7 @@ import { createRuntimeStatusSlice } from './slices/runtime-status'
 import { createPullRequestGenerationSlice } from './slices/pull-request-generation'
 import { createCommitMessageGenerationSlice } from './slices/commit-message-generation'
 import { createPinnedTabCloseConfirmSlice } from './slices/pinned-tab-close-confirm'
+import { createTabMultiSelectSlice } from './slices/tab-multi-select'
 import { createRecentlyClosedTabsSlice } from './slices/recently-closed-tabs'
 import { createOrcaProfilesSlice } from './slices/orca-profiles'
 import { createNewIssueDraftSlice } from './slices/new-issue-draft'
@@ -111,6 +112,7 @@ export const useAppStore = create<AppState>()(
         ...createPullRequestGenerationSlice(...a),
         ...createCommitMessageGenerationSlice(...a),
         ...createPinnedTabCloseConfirmSlice(...a),
+        ...createTabMultiSelectSlice(...a),
         ...createRecentlyClosedTabsSlice(...a),
         ...createOrcaProfilesSlice(...a),
         ...createNewIssueDraftSlice(...a),

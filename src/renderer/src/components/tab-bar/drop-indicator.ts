@@ -28,7 +28,15 @@ export function getDropIndicatorClasses(dropIndicator: DropIndicator): string {
 export const ACTIVE_TAB_INDICATOR_CLASSES =
   'pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-[color-mix(in_srgb,var(--foreground)_60%,var(--card))] z-20'
 
-export function getTabRootStateClasses(isActive: boolean): string {
+// Why a ring and not only a wash: a multi-selected tab must read as "chosen" next to the
+// active tab's own lift, and the styleguide's selection recipe is mix + inset ring.
+const MULTI_SELECTED_TAB_CLASSES =
+  'bg-[color-mix(in_srgb,var(--foreground)_10%,var(--card))] text-foreground shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--foreground)_35%,transparent)]'
+
+export function getTabRootStateClasses(isActive: boolean, isMultiSelected = false): string {
+  if (isMultiSelected) {
+    return MULTI_SELECTED_TAB_CLASSES
+  }
   return isActive
     ? 'bg-[color-mix(in_srgb,var(--foreground)_6%,var(--card))] text-foreground'
     : 'bg-card text-muted-foreground hover:text-foreground'

@@ -140,6 +140,7 @@ export function renderTabBarItems({
           }
           isPinned={item.isPinned}
           isExpanded={expandedPaneByTabId[item.id] === true}
+          multiSelectSeedTabId={activeTabType === 'terminal' ? activeTabId : null}
           onActivate={activateRealTab(onActivate)}
           onClose={onClose}
           onCloseOthers={onCloseOthers}
@@ -257,6 +258,7 @@ export function renderTabBarItems({
           }
           isPinned={item.isPinned}
           isExpanded={false}
+          canMultiSelect={false}
           onActivate={() => activateRealTab(onActivateAgentSession)(item.id)}
           onClose={() => onClose(item.id)}
           onCloseOthers={() => onCloseOthers(item.id)}

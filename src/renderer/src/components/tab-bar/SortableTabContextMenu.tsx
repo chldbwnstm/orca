@@ -1,5 +1,6 @@
 import {
   MessageSquare,
+  MessagesSquare,
   PanelLeftClose,
   PanelRightClose,
   Pin,
@@ -23,6 +24,9 @@ import { formatShortcutLabel, useOptionalShortcutLabel } from '@/hooks/useShortc
 import { translate } from '@/i18n/i18n'
 import { TerminalTabSplitMenuSection } from './TerminalTabSplitMenuSection'
 import { TAB_CONTEXT_MENU_CONTENT_CLASS } from './tab-context-menu-sizing'
+import { requestMoaConsortium } from './moa-consortium-request'
+import { MOA_MIN_SEATS, resolveMoaSeatTabs } from './moa-consortium-seats'
+import { getTabMultiSelectModifierLabel } from './tab-multi-select-modifier'
 
 const TAB_COLORS = [
   {
@@ -117,6 +121,8 @@ type SortableTabContextMenuProps = {
   /** Toggle the tab between terminal and native chat view. */
   onToggleViewMode?: () => void
   canSplitTerminal?: boolean
+  /** False for tabs that cannot be seated in an MoA consortium (structured sessions). */
+  canStartMoaConsortium?: boolean
 }
 
 export function SortableTabContextMenu({
@@ -142,9 +148,20 @@ export function SortableTabContextMenu({
   canToggleViewMode = false,
   isChatView = false,
   onToggleViewMode,
-  canSplitTerminal = true
+  canSplitTerminal = true,
+  canStartMoaConsortium = true
 }: SortableTabContextMenuProps): React.JSX.Element {
   const keybindings = useAppStore((state) => state.keybindings)
+  // Why gated on `open`: pruning the selection against live tabs is a scan, and a closed menu never shows the count.
+  const moaSeatCount = useAppStore((state) =>
+    open && canStartMoaConsortium
+      ? resolveMoaSeatTabs(state, {
+          worktreeId: tab.worktreeId,
+          groupId,
+          tabId: tab.id
+        }).length
+      : 0
+  )
   const splitRightShortcut = formatShortcutLabel('terminal.splitRight', keybindings)
   const splitDownShortcut = formatShortcutLabel('terminal.splitDown', keybindings)
 
@@ -172,6 +189,34 @@ export function SortableTabContextMenu({
           splitDownShortcut={splitDownShortcut}
           showTerminalSplit={canSplitTerminal}
         />
+        {canStartMoaConsortium ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={moaSeatCount < MOA_MIN_SEATS}
+              onSelect={() =>
+                requestMoaConsortium({
+                  worktreeId: tab.worktreeId,
+                  groupId,
+                  tabId: tab.id
+                })
+              }
+            >
+              <MessagesSquare className="size-3.5 shrink-0" />
+              {moaSeatCount >= MOA_MIN_SEATS
+                ? translate(
+                    'components.tab.bar.SortableTabContextMenu.moaDebate',
+                    'Debate with {{count}} tabs (MoA)…',
+                    { count: moaSeatCount }
+                  )
+                : translate(
+                    'components.tab.bar.SortableTabContextMenu.moaDebateSelectMore',
+                    'Debate with tabs (MoA): {{modifier}}+click 2 or more',
+                    { modifier: getTabMultiSelectModifierLabel() }
+                  )}
+            </DropdownMenuItem>
+          </>
+        ) : null}
         {canToggleViewMode && onToggleViewMode ? (
           <>
             <DropdownMenuSeparator />

@@ -50,6 +50,7 @@ export type UISliceContextual = {
     | 'feature-tips'
     | 'new-workspace-composer'
     | 'confirm-orca-yaml-hooks'
+    | 'moa-consortium'
   modalData: Record<string, unknown>
   openModal: (modal: UISliceContextual['activeModal'], data?: Record<string, unknown>) => void
   closeModal: () => void

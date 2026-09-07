@@ -58,6 +58,7 @@ vi.mock('lucide-react', () => ({
   Copy: () => null,
   ListX: () => null,
   MessageSquare: () => null,
+  MessagesSquare: () => null,
   PanelBottomClose: () => null,
   PanelLeftClose: () => null,
   PanelRightClose: () => null,
@@ -261,7 +262,11 @@ describe('SortableTabContextMenu', () => {
     const onCloseOthers = vi.fn()
     const onCloseToRight = vi.fn()
     const onCloseToLeft = vi.fn()
-    const { container } = renderMenu({ onCloseOthers, onCloseToRight, onCloseToLeft })
+    const { container } = renderMenu({
+      onCloseOthers,
+      onCloseToRight,
+      onCloseToLeft
+    })
 
     act(() => getButton(container, 'Close Others').click())
     expect(onCloseOthers).toHaveBeenCalledWith('term-1')
@@ -274,7 +279,10 @@ describe('SortableTabContextMenu', () => {
   })
 
   it('disables directional closes when no tabs exist on that side', () => {
-    const { container } = renderMenu({ hasTabsToLeft: false, hasTabsToRight: false })
+    const { container } = renderMenu({
+      hasTabsToLeft: false,
+      hasTabsToRight: false
+    })
 
     expect(getButton(container, 'Close Tabs To The Left').disabled).toBe(true)
     expect(getButton(container, 'Close Tabs To The Right').disabled).toBe(true)
@@ -298,5 +306,51 @@ describe('SortableTabContextMenu', () => {
 
     expect(container.textContent).not.toContain('Move Tab to Split')
     expect(container.textContent).toContain('Split terminal right')
+  })
+
+  it('offers the MoA debate item disabled until a selection of two includes this tab', () => {
+    const { container } = renderMenu()
+
+    const item = getButton(container, 'Debate with tabs (MoA)')
+    expect(item.disabled).toBe(true)
+  })
+
+  it('opens the consortium dialog for the selection this tab belongs to', () => {
+    const openModal = vi.fn()
+    const terminalTab = (id: string) => ({
+      id,
+      ptyId: null,
+      worktreeId: 'wt-1',
+      title: id,
+      customTitle: null,
+      color: null,
+      sortOrder: 0,
+      createdAt: 0
+    })
+    storeMock.state = {
+      ...storeMock.state,
+      openModal,
+      multiSelectGroupId: 'group-1',
+      multiSelectedTabIds: ['term-2', 'term-1', 'term-gone'],
+      tabsByWorktree: {
+        'wt-1': [terminalTab('term-1'), terminalTab('term-2')]
+      }
+    }
+    const { container } = renderMenu()
+
+    const item = getButton(container, 'Debate with {{count}} tabs (MoA)')
+    expect(item.disabled).toBe(false)
+    act(() => item.click())
+    expect(openModal).toHaveBeenCalledWith('moa-consortium', {
+      worktreeId: 'wt-1',
+      groupId: 'group-1',
+      seatTabIds: ['term-2', 'term-1']
+    })
+  })
+
+  it('hides the MoA item for tabs that cannot be seated', () => {
+    const { container } = renderMenu({ canStartMoaConsortium: false })
+
+    expect(container.textContent).not.toContain('MoA')
   })
 })

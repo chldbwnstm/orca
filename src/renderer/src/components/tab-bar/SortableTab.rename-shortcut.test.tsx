@@ -104,6 +104,9 @@ vi.mock('lucide-react', () => ({
   MessageSquare: function MessageSquare(props: Record<string, unknown>) {
     return { type: 'MessageSquare', props }
   },
+  MessagesSquare: function MessagesSquare(props: Record<string, unknown>) {
+    return { type: 'MessagesSquare', props }
+  },
   Pencil: function Pencil(props: Record<string, unknown>) {
     return { type: 'Pencil', props }
   },
