@@ -182,10 +182,11 @@ Differences from the default protocol (everything else is unchanged):
 
 1. **Resolve tabs → handles**: `orca terminal list --json` (add
    `--include-visual-layouts` only if titles are missing). When the request
-   carries `tab-ids:"<id>",…` (Orca's tab-bar "Debate with MoA" action emits
-   `/moa tabs:"A","B" tab-ids:"<tabId>","<tabId>" <problem>`, same order as
-   `tabs:`), match each entry exactly against the `tabId` field first — that is
-   authoritative. Otherwise match each requested name against terminal titles
+   carries `tab-ids:` (Orca's tab-bar "Debate with MoA" action emits
+   `/moa tabs:A|B tab-ids:<tabId>,<tabId> <problem>` — unquoted, `|`-separated
+   titles and comma-separated ids in the same order, because a shell argv cannot
+   carry quotes reliably; humans may still type `tabs:"A","B"`), match each id
+   exactly against the `tabId` field first — that is authoritative. Otherwise match each requested name against terminal titles
    case-insensitively after stripping leading agent glyphs (◐ ◑ ● ○ ✦ …) and
    whitespace from both sides. A name matching zero or multiple terminals → ask
    the user to disambiguate before convening. Record in the ledger: seat label,

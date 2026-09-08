@@ -10,7 +10,11 @@ import {
   waitForActiveWorktree,
   waitForSessionReady
 } from './helpers/store'
-import { focusActiveTerminalInput, waitForTerminalOutput } from './helpers/terminal'
+import {
+  focusActiveTerminalInput,
+  getTerminalContent,
+  waitForTerminalOutput
+} from './helpers/terminal'
 
 // Why the stub: the coordinator launch must exercise the real tab-bar → dialog → launch path
 // without starting a real Claude session; the golden stub echoes what it was told to submit.
@@ -72,9 +76,18 @@ test('modifier-click seats two tabs and the context menu launches an MoA coordin
   await expect(coordinatorTab).not.toHaveAttribute('data-tab-id', secondTabId)
   await focusActiveTerminalInput(orcaPage)
   await waitForTerminalOutput(orcaPage, GOLDEN_STUB_READY_MARKER, 20_000)
-  // The prompt is pasted and submitted once the TUI is ready; the stub echoes what it received.
-  await waitForTerminalOutput(orcaPage, '/moa tabs:', 30_000)
-  await waitForTerminalOutput(orcaPage, `tab-ids:"${firstTabId}","${secondTabId}"`, 30_000)
+  // The prompt rides on the launch argv; the stub echoes what the shell delivered.
+  // Why strip whitespace: the argv echo wraps at the terminal width, splitting long ids across rows.
+  const unwrappedTerminal = async (): Promise<string> =>
+    (await getTerminalContent(orcaPage, 6000)).replace(/\s+/g, '')
+  await expect
+    .poll(unwrappedTerminal, {
+      timeout: 30_000,
+      message: 'coordinator terminal never showed the launch prompt'
+    })
+    .toContain('/moatabs:')
+  // Seat order is selection order: the active tab seeds the selection, then the modifier-clicked one.
+  await expect.poll(unwrappedTerminal).toContain(`tab-ids:${secondTabId},${firstTabId}`)
 
   // Starting the debate ends the selection.
   await expect(

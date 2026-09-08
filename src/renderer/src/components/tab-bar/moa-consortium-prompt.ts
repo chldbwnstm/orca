@@ -7,14 +7,14 @@ export type MoaSeatTerminal = {
   tabId: string
 }
 
-function quoteSeatName(title: string): string {
-  // Why strip the glyph: the tab bar hides the agent's leading decoration, so the user reads
-  // and the skill matches the undecorated title; quotes become apostrophes to keep the list parseable.
+function seatName(title: string): string {
+  // Why no quotes and no pipes: the prompt is a shell argv and PowerShell drops bare double quotes
+  // on the way to a native command, so titles are separated by '|' and carry neither.
   const plain = stripLeadingAgentTitleDecoration(title)
-    .replace(/[\r\n]+/g, ' ')
-    .replace(/"/g, "'")
+    .replace(/[\r\n|"']+/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
-  return `"${plain || 'untitled'}"`
+  return plain || 'untitled'
 }
 
 /** The `/moa tabs:` invocation the coordinator tab submits; see the moa skill's tab-seat mode. */
@@ -22,7 +22,9 @@ export function buildMoaConsortiumPrompt(args: {
   seats: readonly MoaSeatTerminal[]
   problem: string
 }): string {
-  const tabs = args.seats.map((seat) => quoteSeatName(seat.title)).join(',')
-  const tabIds = args.seats.map((seat) => `"${seat.tabId}"`).join(',')
-  return `/moa tabs:${tabs} tab-ids:${tabIds} ${args.problem.trim()}`
+  const tabs = args.seats.map((seat) => seatName(seat.title)).join('|')
+  const tabIds = args.seats.map((seat) => seat.tabId).join(',')
+  // Why one line: the prompt travels as a shell argv; a newline would end the command on Windows shells.
+  const problem = args.problem.replace(/\s*[\r\n]+\s*/g, ' ').trim()
+  return `/moa tabs:${tabs} tab-ids:${tabIds} ${problem}`
 }

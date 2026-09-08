@@ -93,8 +93,8 @@ describe('MoaConsortiumDialog', () => {
       agent: 'claude',
       worktreeId: 'wt-1',
       groupId: 'g1',
-      prompt: '/moa tabs:"Fably","Grokkie" tab-ids:"t1","t2" Which cache store should we adopt?',
-      promptDelivery: 'submit-after-ready',
+      prompt: '/moa tabs:Fably|Grokkie tab-ids:t1,t2 Which cache store should we adopt?',
+      promptDelivery: 'auto-submit',
       launchSource: 'tab_bar_moa_consortium'
     })
     expect(useAppStore.getState().activeModal).toBe('none')

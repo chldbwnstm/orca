@@ -87,14 +87,14 @@ const MoaConsortiumDialog = React.memo(function MoaConsortiumDialog(): React.JSX
       })),
       problem
     })
-    // Why submit-after-ready: the problem statement is free text and may span lines, which does
-    // not survive a shell argv; launch clean, then paste and submit once the TUI is ready.
+    // Why argv (auto-submit): the prompt is one line by construction, and the argv launch is the
+    // same path every tab-bar agent launch takes — no readiness heuristics between launch and submit.
     const result = launchAgentInNewTab({
       agent: MOA_COORDINATOR_AGENT,
       worktreeId: request.worktreeId,
       groupId: request.groupId,
       prompt,
-      promptDelivery: 'submit-after-ready',
+      promptDelivery: 'auto-submit',
       launchSource: 'tab_bar_moa_consortium'
     })
     if (!result) {

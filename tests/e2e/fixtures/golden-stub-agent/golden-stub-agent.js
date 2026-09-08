@@ -12,6 +12,9 @@ if (process.argv[2] === 'app-server') {
 const ESC = '\x1b'
 const keyboardProtocolMode = process.argv.includes('--keyboard-protocol')
 const keyboardProtocolAgent = process.argv.includes('--grok') ? 'Grok' : 'Codex'
+// Why echo argv: specs that launch with an initial prompt need to see what the shell actually
+// delivered, quoting included, without a real agent parsing it.
+const promptArgv = process.argv.slice(2).filter((arg) => !arg.startsWith('--'))
 // Both match the bytes after ESC, so the control character stays out of the
 // pattern: a CSI/SS3 introducer still missing its final byte, and a complete
 // CSI/SS3 sequence. Shift+Enter is matched before either is consulted.
@@ -34,6 +37,7 @@ function render() {
       ...renderedComposer,
       '',
       'Shift+Enter inserts a newline. Type exit then Enter to quit.',
+      ...(promptArgv.length > 0 ? [`[GOLDEN_STUB_AGENT_ARGV] ${promptArgv.join(' ')}`] : []),
       ...(lastSubmission ? [`[GOLDEN_STUB_AGENT_SUBMITTED] ${lastSubmission}`] : [])
     ].join('\r\n')}`
   )
