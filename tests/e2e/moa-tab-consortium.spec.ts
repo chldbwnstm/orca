@@ -34,8 +34,11 @@ test('modifier-click seats two tabs and the context menu launches an MoA coordin
   await ensureTerminalVisible(orcaPage)
   await configureGoldenStubAgent(orcaPage, { agent: 'claude' })
 
-  const firstTabId = await getActiveTabId(orcaPage)
-  expect(firstTabId).toBeTruthy()
+  const activeTabId = await getActiveTabId(orcaPage)
+  if (!activeTabId) {
+    throw new Error('No active terminal tab to seat')
+  }
+  const firstTabId = activeTabId
   // Setup only: a second terminal tab, activated so the first one is the inactive seat.
   const secondTabId = await orcaPage.evaluate((id) => {
     const store = window.__store
@@ -72,7 +75,7 @@ test('modifier-click seats two tabs and the context menu launches an MoA coordin
   // The coordinator is a third tab in the same group, running the (stubbed) Claude CLI.
   await expect(orcaPage.locator('[data-testid="sortable-tab"]')).toHaveCount(3)
   const coordinatorTab = orcaPage.locator('[data-testid="sortable-tab"][data-active="true"]')
-  await expect(coordinatorTab).not.toHaveAttribute('data-tab-id', firstTabId!)
+  await expect(coordinatorTab).not.toHaveAttribute('data-tab-id', firstTabId)
   await expect(coordinatorTab).not.toHaveAttribute('data-tab-id', secondTabId)
   await focusActiveTerminalInput(orcaPage)
   await waitForTerminalOutput(orcaPage, GOLDEN_STUB_READY_MARKER, 20_000)
