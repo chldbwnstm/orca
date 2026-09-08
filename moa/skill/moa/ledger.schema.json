@@ -1,0 +1,288 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MoA Deliberation Ledger (v3 — dogfooded shape + store dual-write)",
+  "type": "object",
+  "required": ["slug", "problem", "mode", "seats", "debates"],
+  "properties": {
+    "protocol": {
+      "enum": ["v2", "v3"],
+      "description": "protocol version this ledger was written under; absent means v2. v3-only rules (base required on merge verdicts) are enforced only when this is v3, so historical ledgers stay valid instead of being retro-fitted with data their seats never reported"
+    },
+    "slug": { "type": "string" },
+    "problem": { "type": "string" },
+    "mode": { "enum": ["summary", "full"] },
+    "run": { "type": "string", "description": "orchestration run id (run_...)" },
+    "store": {
+      "type": "object",
+      "description": "the orchestration ledger store copy of this deliberation",
+      "properties": {
+        "deliberation": {
+          "type": "string",
+          "description": "store deliberation id (moad_...) returned by the first moa-log"
+        },
+        "slug": { "type": "string", "description": "--deliberation slug, unique within the Run" }
+      }
+    },
+    "protocol_note": {
+      "type": "string",
+      "description": "run-level protocol incident, e.g. 'store unavailable: <error>'"
+    },
+    "family_note": {
+      "type": "string",
+      "description": "recorded when seat model families overlap; same-family agreement is correlated evidence"
+    },
+    "seats": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seat", "requested", "verified", "status"],
+        "properties": {
+          "seat": { "type": "string", "pattern": "^seat-[A-Z]$" },
+          "requested": { "$ref": "#/definitions/identity" },
+          "reported": {
+            "anyOf": [{ "$ref": "#/definitions/identity" }, { "type": "null" }]
+          },
+          "verified": {
+            "anyOf": [{ "type": ["boolean", "null"] }, { "const": "self" }],
+            "description": "per-field rule: agent+model must match requested (normalized); effort never gates verification. 'self' is tabs mode — self-reported with nothing requested to compare against. Counted seats are true or 'self'; only true may support an unanimous claim"
+          },
+          "verification_note": { "type": "string" },
+          "tab": { "type": "string", "description": "tab title, tabs mode only" },
+          "worktree": { "type": "string" },
+          "task": { "type": "string" },
+          "dispatch": { "type": "string" },
+          "terminal": { "type": "string" },
+          "status": { "enum": ["active", "seat_failed"] },
+          "failure": { "type": "string" }
+        }
+      }
+    },
+    "debates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["debate", "problem", "proposals"],
+        "properties": {
+          "debate": { "type": "integer", "minimum": 1 },
+          "problem": { "type": "string" },
+          "proposals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "seat", "idea"],
+              "properties": {
+                "id": { "type": "string" },
+                "seat": { "type": "string", "pattern": "^seat-[A-Z]$" },
+                "idea": { "type": "string" },
+                "proposal": { "type": "string" },
+                "key_points": { "type": "array", "items": { "type": "string" } },
+                "confidence": { "enum": ["low", "medium", "high"] },
+                "resurfaces": {
+                  "type": ["string", "null"],
+                  "description": "id of an earlier rejected proposal this substantially restates; forces explicit re-examination"
+                },
+                "amended_in_round": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "description": "round whose rebuttal amended this proposal; the amendment is recorded, the original is never overwritten"
+                },
+                "store_entry_id": {
+                  "type": "string",
+                  "description": "moae_... id returned by moa-log; later verdicts use it as subjectEntryId"
+                },
+                "report": {
+                  "type": "string",
+                  "description": "absolute path of the seat's proposal.json"
+                }
+              }
+            }
+          },
+          "rounds": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["round", "verdicts"],
+              "properties": {
+                "round": { "type": "integer", "minimum": 2 },
+                "kind": {
+                  "enum": ["deliberation", "rebuttal"],
+                  "description": "absent means deliberation"
+                },
+                "verdicts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["from", "target", "verdict", "rationale"],
+                    "properties": {
+                      "from": { "type": "string", "pattern": "^seat-[A-Z]$" },
+                      "target": { "type": "string", "pattern": "^seat-[A-Z]$" },
+                      "verdict": { "enum": ["support", "challenge", "merge"] },
+                      "rationale": { "type": "string" },
+                      "merge_with": { "type": "array", "items": { "type": "string" } },
+                      "base": {
+                        "type": "string",
+                        "pattern": "^seat-[A-Z]$",
+                        "description": "which proposal the merged result is built on. REQUIRED on every merge verdict under protocol v3; a merge whose base equals its target is a merge-as-base vote for the target"
+                      },
+                      "store_entry_id": { "type": "string" }
+                    }
+                  }
+                },
+                "rebuttals": {
+                  "type": "array",
+                  "description": "rebuttal-round records; one item per seat that defended or revisited a challenge",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["seat"],
+                    "properties": {
+                      "seat": { "type": "string", "pattern": "^seat-[A-Z]$" },
+                      "defence": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["action", "rationale"],
+                        "properties": {
+                          "action": { "enum": ["defend", "amend", "concede"] },
+                          "amended_proposal": { "type": "string" },
+                          "rationale": { "type": "string" }
+                        }
+                      },
+                      "challenges": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["target", "action", "rationale"],
+                          "properties": {
+                            "target": { "type": "string", "pattern": "^seat-[A-Z]$" },
+                            "action": { "enum": ["confirm", "withdraw"] },
+                            "rationale": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "rankings": {
+                  "type": "object",
+                  "description": "seat -> proposals best-first",
+                  "additionalProperties": { "type": "array", "items": { "type": "string" } }
+                },
+                "concessions": {
+                  "type": "object",
+                  "description": "seat -> self-reported concede_own; the DERIVED value (ranked another first) governs tallying",
+                  "additionalProperties": { "type": "boolean" }
+                },
+                "derived_concessions": {
+                  "type": "object",
+                  "additionalProperties": { "type": "boolean" }
+                },
+                "base_tally": {
+                  "type": "object",
+                  "description": "proposal id -> count of counted seats naming it as base (support, or merge with base === target)",
+                  "additionalProperties": { "type": "integer", "minimum": 0 }
+                },
+                "convergence": { "type": "string" },
+                "protocol_note": { "type": "string" },
+                "store": {
+                  "type": "object",
+                  "description": "store entry ids returned by this round's moa-log, keyed however the coordinator finds useful (e.g. 'seat-A:seat-B')",
+                  "additionalProperties": { "type": "string" }
+                }
+              }
+            }
+          },
+          "resolution": {
+            "anyOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["adopted", "rejected"],
+                "properties": {
+                  "adopted": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["sources", "type", "rationale"],
+                    "properties": {
+                      "sources": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+                      "type": { "enum": ["single", "merge"] },
+                      "base": {
+                        "type": "string",
+                        "description": "proposal id adopted as the base when type is merge"
+                      },
+                      "rationale": { "type": "string" },
+                      "store_entry_id": { "type": "string" }
+                    }
+                  },
+                  "rejected": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["proposal", "rationale", "votes", "unanimous"],
+                      "properties": {
+                        "proposal": {
+                          "type": "string",
+                          "description": "proposal id, or compound id for a component rejection (e.g. p-B:messages-as-WAL)"
+                        },
+                        "rationale": { "type": "string" },
+                        "votes": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "enum": ["reject", "support", "concede", "abstain"]
+                          }
+                        },
+                        "unanimous": {
+                          "type": "boolean",
+                          "description": "among verified: true seats only — a 'self' seat can never support this claim"
+                        },
+                        "store_entry_id": { "type": "string" }
+                      }
+                    }
+                  },
+                  "dissent": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["seat", "position"],
+                      "properties": {
+                        "seat": { "type": "string", "pattern": "^seat-[A-Z]$" },
+                        "position": { "type": "string" }
+                      }
+                    }
+                  },
+                  "chair_additions": { "type": "array", "items": { "type": "string" } },
+                  "resolution_forced_by": {
+                    "enum": ["round_cap", "seat_attrition", "tie", "insufficient_verified", null]
+                  },
+                  "store": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "identity": {
+      "type": "object",
+      "required": ["agent"],
+      "properties": {
+        "agent": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "effort": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

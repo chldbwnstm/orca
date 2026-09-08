@@ -1,0 +1,237 @@
+{
+  "slug": "ledger-storage",
+  "problem": "How should the MoA deliberation ledger be persisted in Orca: (A) new orchestration DB tables, (B) per-run JSON/JSONL files, (C) orchestration message payloads — considering remote wire compat, SSH, crash recovery, future UI, and small-PR scope?",
+  "mode": "full",
+  "run": "run_20fc586727aa",
+  "seats": [
+    {
+      "seat": "seat-A",
+      "requested": {
+        "agent": "claude",
+        "model": "fable",
+        "effort": "high"
+      },
+      "reported": {
+        "agent": "Claude Code (Orca dispatched worker terminal)",
+        "model": "claude-fable-5",
+        "effort": "unknown"
+      },
+      "verified": true,
+      "verification_note": "agent+model match; effort unverifiable (seat reported 'unknown')",
+      "worktree": "C:/Users/User/orca/workspaces/Orca MOA/moa-ledger-seat-a",
+      "task": "task_849be66f0805",
+      "dispatch": "ctx_7e0937cda45a",
+      "terminal": "term_efd94214-ef6f-4158-b9ae-36126dbab3f5",
+      "status": "active"
+    },
+    {
+      "seat": "seat-B",
+      "requested": {
+        "agent": "claude",
+        "model": "opus",
+        "effort": "high"
+      },
+      "reported": {
+        "agent": "Claude Code (Anthropic CLI)",
+        "model": "claude-opus-5",
+        "effort": "unknown"
+      },
+      "verified": true,
+      "verification_note": "agent+model match; effort unverifiable (seat reported 'unknown')",
+      "worktree": "C:/Users/User/orca/workspaces/Orca MOA/moa-ledger-seat-b",
+      "task": "task_90f93a735f80",
+      "dispatch": "ctx_b9693bb3e2a3",
+      "terminal": "term_1ba45f89-e9f9-4021-af2c-3c0ee8622de9",
+      "status": "active"
+    },
+    {
+      "seat": "seat-C",
+      "requested": {
+        "agent": "grok",
+        "model": null,
+        "effort": null
+      },
+      "reported": {
+        "agent": "grok",
+        "model": "grok-4.6",
+        "effort": "unknown"
+      },
+      "verified": true,
+      "verification_note": "agent matches; no model requested, reported grok-4.6",
+      "worktree": "C:/Users/User/orca/workspaces/Orca MOA/moa-ledger-seat-c",
+      "task": "task_a3b9fa30abf1",
+      "dispatch": "ctx_50e113fb8d1f",
+      "terminal": "term_d4c7ba0b-2ee9-4298-b49b-412a558eede2",
+      "status": "active"
+    }
+  ],
+  "family_note": "seat-A and seat-B share the claude family (only 2 families installed: claude, grok); agreement between A and B is correlated evidence.",
+  "debates": [
+    {
+      "debate": 1,
+      "problem": "MoA ledger persistence design (A/B/C or hybrid)",
+      "proposals": [
+        {
+          "id": "p-A",
+          "seat": "seat-A",
+          "idea": "New append-only MoA ledger tables in the existing orchestration SQLite DB (option A), with seats submitting entries over the existing orchestration message transport (C as transport only, never as storage), and worktree files (B) rejected as primary storage.",
+          "confidence": "high",
+          "key_points": [
+            "Two tables via existing atomic migrate() pattern: moa_deliberations + moa_ledger_entries (append-only, rationale-in-row, sequence total order, provenance message_id link)",
+            "Seats never touch the DB; they submit over the existing orchestration control-plane (CLI/SSH relay shim), runtime materializes rows",
+            "Survives coordinator death (DB is client-runtime-resident); SSH seats already reach it; UI later reads via new RPC old clients never call",
+            "Rejects B as primary: fails when coordinator worktree is remote or deleted"
+          ],
+          "resurfaces": null,
+          "report": "C:/Users/User/orca/workspaces/Orca MOA/moa-ledger-seat-a/moa/out/proposal.json"
+        },
+        {
+          "id": "p-C",
+          "seat": "seat-C",
+          "idea": "Authoritative MoA ledger in new orchestration SQLite tables (schema v30); seats contribute through existing message payloads as ingest only, never as the store and never as worktree files.",
+          "confidence": "high",
+          "key_points": [
+            "Hybrid A + narrow slice of C: DB tables are the store; messages table is the already-shipped ingest path",
+            "Ledger is control-plane state, same class as decision_gates (ssh-execution-boundary.md: orchestration state is client-resident)",
+            "Materialize typed rows from payload.moa on existing message types (status/worker_done); no new messages.type in the first PR (wire compat)",
+            "Rejects B as source of truth and rejects messages rows themselves as the ledger"
+          ],
+          "resurfaces": null,
+          "report": "C:/Users/User/orca/workspaces/Orca MOA/moa-ledger-seat-c/moa/out/proposal.json"
+        },
+        {
+          "id": "p-B",
+          "seat": "seat-B",
+          "idea": "Persist the ledger as new additive SQLite tables in the existing orchestration DB, but treat the existing messages table as the durable write-ahead log and sole cross-host transport, so ledger tables are a rebuildable projection rather than a second source of truth.",
+          "confidence": "high",
+          "key_points": [
+            "messages.type is a CLOSED CHECK enum and parseFederatedControlMessage THROWS on unknown types cross-host — never mint a new message type",
+            "messages.payload is opaque TEXT relayed verbatim for generic control messages — the ledger wire format is a payload key on an EXISTING type (wire-compat Rule 1)",
+            "worker_done payloads are field-whitelisted at the federation boundary — MoA data cannot ride worker_done cross-host",
+            "Ledger tables = rebuildable projection; messages = durable WAL and single source of truth; reject B outright"
+          ],
+          "resurfaces": null,
+          "report": "C:/Users/User/orca/workspaces/Orca MOA/moa-ledger-seat-b/moa/out/proposal.json"
+        }
+      ],
+      "rounds": [
+        {
+          "round": 2,
+          "verdicts": [
+            {
+              "from": "seat-A",
+              "target": "seat-B",
+              "verdict": "merge",
+              "merge_with": ["seat-C"],
+              "rationale": "B's verified federation facts (closed MESSAGE_TYPES throws; worker_done payload whitelist drops extra fields) and idempotent content-addressed ingest are the round's strongest details — but B's authority model fails concretely: resetMessages() runs DELETE FROM messages (orchestration-reset.ts:76-84), so a routine mailbox reset destroys the claimed WAL and the 'disposable projection' silently becomes the only copy. Fold B's details into C's frame."
+            },
+            {
+              "from": "seat-A",
+              "target": "seat-C",
+              "verdict": "support",
+              "rationale": "Correct authority model (tables authoritative, payload.moa ingest, no new message type; decision_gates precedent; reset semantics handled). Minor fixes: validate enums in TypeScript instead of CHECK constraints (rebuild hazard B documented), and use anonymized seat ids."
+            },
+            {
+              "from": "seat-B",
+              "target": "seat-C",
+              "verdict": "merge",
+              "merge_with": ["seat-A", "seat-B"],
+              "rationale": "Strongest proposal, right base to build on; decision_gates analogy verified exact. All three seats independently converged on the same architecture — disagreement is entirely schema detail, every contested claim verified against code or by executing SQL."
+            },
+            {
+              "from": "seat-B",
+              "target": "seat-A",
+              "verdict": "merge",
+              "merge_with": ["seat-C", "seat-B"],
+              "rationale": "Its STRICT APPEND-ONLY framing (outcomes are new rows, nothing UPDATEd, audit log by construction) is the best of the round — beats seat-C's mutable status/current_round header, which a crash mid-round-close can leave disagreeing with its entries. But the schema as written CANNOT BE CREATED: TEXT PRIMARY KEY plus a separate AUTOINCREMENT sequence column is invalid SQLite."
+            },
+            {
+              "from": "seat-C",
+              "target": "seat-A",
+              "verdict": "merge",
+              "merge_with": ["seat-B", "seat-C"],
+              "rationale": "Keep append-only outcome rows, anonymized seat_id, message_id provenance. Reject sequence AUTOINCREMENT as global order — federated votes land in relay-arrival order, so a Ledger panel sorting by sequence shows the wrong first voter; display order must be (round, authored_at, id). Reject SQL CHECK on entry_type (SQLite cannot ALTER a CHECK)."
+            },
+            {
+              "from": "seat-C",
+              "target": "seat-B",
+              "verdict": "merge",
+              "merge_with": ["seat-C"],
+              "rationale": "Adopt what is actually in the code: no new messages.type, optional key on --type status, no SQL CHECK on kind/verdict, content-addressed ids with INSERT OR IGNORE, authored_at vs recorded_at split, recorded_seq as local pagination cursor. Do NOT treat messages as durable WAL/sole truth: resetMessages() is DELETE FROM messages."
+            }
+          ],
+          "rankings": {
+            "seat-A": ["seat-C", "seat-B", "seat-A"],
+            "seat-B": ["seat-C", "seat-B", "seat-A"],
+            "seat-C": ["seat-B", "seat-C", "seat-A"]
+          },
+          "concessions": {
+            "seat-A": true,
+            "seat-B": false,
+            "seat-C": false
+          },
+          "convergence": "zero challenge verdicts among verified seats after round 2 — converged, no rebuttal round",
+          "protocol_note": "seat-B ranked seat-C above itself yet set concede_own=false — the skill's concede semantics are ambiguous relative to ranking (dogfood finding)"
+        }
+      ],
+      "resolution": {
+        "adopted": {
+          "sources": ["p-C", "p-B", "p-A"],
+          "type": "merge",
+          "base": "p-C",
+          "rationale": "All three seats independently converged on the architecture (DB tables as store, messages as ingest-only transport, files rejected). p-C adopted as base: correct authority model with the exact decision_gates precedent and correct reset semantics (votes: seat-A support, seat-B merge-as-base; strict majority of verified seats). Merged from p-B: never mint a new messages.type (closed enum throws cross-host), carry payload.moa on existing type 'status' (worker_done is field-whitelisted), content-addressed entry ids + INSERT OR IGNORE idempotent ingest, authored_at/recorded_at split with display order (round, authored_at, id). Merged from p-A: strict append-only invariant (outcomes are new rows referencing proposals, never UPDATE — replaces p-C's mutable header status per seat-B's crash-consistency critique), anonymized seat_id, message_id provenance."
+        },
+        "rejected": [
+          {
+            "proposal": "p-B:messages-as-WAL",
+            "rationale": "B's core authority claim — messages table as durable write-ahead log with ledger tables a rebuildable projection — fails because resetMessages() executes DELETE FROM messages: a routine mailbox reset destroys the claimed log and the 'disposable' projection silently becomes the only copy; heartbeat flood and deferred retention compound it.",
+            "votes": {
+              "seat-A": "reject",
+              "seat-B": "concede",
+              "seat-C": "reject"
+            },
+            "unanimous": true
+          },
+          {
+            "proposal": "p-A:sequence-autoincrement-global-order",
+            "rationale": "Rejected twice over: federated entries land in relay-arrival order so sequence misorders the first voter in any cross-host deliberation (seat-C), and the sketch is invalid SQLite anyway — TEXT PRIMARY KEY cannot carry a separate AUTOINCREMENT column (seat-B, verified by executing the SQL).",
+            "votes": {
+              "seat-A": "concede",
+              "seat-B": "reject",
+              "seat-C": "reject"
+            },
+            "unanimous": true
+          },
+          {
+            "proposal": "all:sql-check-enums",
+            "rationale": "CHECK constraints on kind/verdict/entry_type reintroduce the closed-enum rebuild hazard (widening messages.type to add 'question' required a full table rebuild plus a SQL-text probe; SQLite cannot ALTER a CHECK). Validate in TypeScript instead.",
+            "votes": {
+              "seat-A": "reject",
+              "seat-B": "reject",
+              "seat-C": "reject"
+            },
+            "unanimous": true
+          },
+          {
+            "proposal": "option-B:worktree-files-as-primary-store",
+            "rationale": "Rejected blind by all three seats in phase 1 before seeing each other: fails when the coordinator worktree is remote or deleted; ledger is client-resident control-plane state (ssh-execution-boundary.md), same class as decision_gates, not a git-tracked execution artifact.",
+            "votes": {
+              "seat-A": "reject",
+              "seat-B": "reject",
+              "seat-C": "reject"
+            },
+            "unanimous": true
+          }
+        ],
+        "dissent": [
+          {
+            "seat": "seat-C",
+            "position": "Ranked seat-B's proposal first (B, C, A) against the consensus base of p-C, valuing B's code-verified federation constraints as the round's decisive material."
+          }
+        ],
+        "chair_additions": [],
+        "resolution_forced_by": null
+      }
+    }
+  ]
+}
